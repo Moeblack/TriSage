@@ -174,11 +174,18 @@ export class LLMProvider {
   ): Promise<{ response: AgentResponse; vote: Vote }> {
     return retry(async () => {
       const model = options.model || this.getNextModel();
+
+      // deepseek-reasoner (R1) does not support tool_choice; other models benefit from it
+      const isReasonerModel = /reasoner|deepseek-r1/i.test(model);
+      const toolChoiceOpt: Record<string, any> = isReasonerModel
+        ? {}
+        : { tool_choice: { type: "function", function: { name: "vote" } } };
+
       const response = await this.client.chat.completions.create({
         model,
         messages: messages as any,
         tools: tools as any,
-        tool_choice: { type: "function", function: { name: "vote" } },
+        ...toolChoiceOpt,
         temperature: options.temperature ?? this.config.llm.temperature,
         max_tokens: options.maxTokens ?? this.config.llm.maxTokens,
       });
@@ -186,7 +193,7 @@ export class LLMProvider {
       const choice = response.choices[0];
       const toolCall = choice.message.tool_calls?.find((tc) => tc.function.name === "vote");
 
-      let vote: Vote;
+      let vote: Vote = { agentId: crypto.randomUUID(), decision: "keep" as any, reasoning: "Fallback: uninitialized" };
       if (toolCall) {
         try {
           const args = JSON.parse(toolCall.function.arguments);
@@ -200,9 +207,47 @@ export class LLMProvider {
           vote = { agentId: crypto.randomUUID(), decision: "keep" as any, reasoning: "Fallback: failed to parse tool call" };
         }
       } else {
-        // Fallback: try to find JSON in content if tool call fails
-        logger.warn("No tool call found in response, attempting to parse content");
-        vote = { agentId: crypto.randomUUID(), decision: "keep" as any, reasoning: "Fallback: no tool call found" };
+        // Fallback: model didn't use tool_call, try to extract vote from content text
+        const content = choice.message.content || "";
+        logger.warn(`No tool call found in vote response (model=${model}). Attempting to parse content as fallback.`);
+
+        let parsed = false;
+        try {
+          // Try to find a JSON object with "decision" in the content — match all valid values
+          const jsonMatch = content.match(/\{[^{}]*"decision"\s*:\s*"(keep|revise|accept|redo)"[^{}]*\}/i);
+          if (jsonMatch) {
+            const fallbackArgs = JSON.parse(jsonMatch[0]);
+            vote = {
+              agentId: crypto.randomUUID(),
+              decision: fallbackArgs.decision,
+              reasoning: fallbackArgs.reasoning || "Parsed from content fallback",
+            };
+            parsed = true;
+            logger.info(`Fallback content parse succeeded: decision=${fallbackArgs.decision}`);
+          }
+        } catch (e) {
+          logger.error("Fallback content parse also failed", e);
+        }
+
+        // Even looser fallback: look for bare decision keywords in text
+        if (!parsed) {
+          const looseMatch = content.match(/\b(decision|vote)\b[^a-z]*(keep|revise|accept|redo)\b/i);
+          if (looseMatch) {
+            const decision = looseMatch[2].toLowerCase() as Vote["decision"];
+            vote = {
+              agentId: crypto.randomUUID(),
+              decision,
+              reasoning: `Parsed from loose text match in content`,
+            };
+            parsed = true;
+            logger.info(`Loose fallback parse succeeded: decision=${decision}`);
+          }
+        }
+
+        if (!parsed) {
+          logger.warn("Could not extract vote from content. Defaulting to 'keep'.");
+          vote = { agentId: crypto.randomUUID(), decision: "keep" as any, reasoning: "Fallback: could not parse vote from model output" };
+        }
       }
 
       return {

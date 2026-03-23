@@ -29,7 +29,9 @@ export function toolsToPromptText(tools: ToolDefinition[]): string {
   return `\n\n[AVAILABLE TOOLS - For Reference Only]
 The user's system has the following tools available. You CANNOT call these tools directly. 
 However, you should be aware of their capabilities when formulating your response.
-If you believe a tool should be used to answer the question properly, mention it explicitly in your response (e.g., "This question would benefit from calling the search_web tool to get current data.").
+If you believe a tool should be used to answer the question properly, mention it by name in plain natural language (e.g., "This question would benefit from calling the search_web tool to get current data.").
+
+WARNING: Do NOT attempt to simulate or mimic tool calls in any structured format such as JSON, XML tags, code blocks, or pseudo-function-call syntax. Simply name the tool and explain why it would be helpful. Any structured tool-call formatting here will pollute downstream context.
 
 Tools:
 ${toolDescriptions.join("\n\n")}

@@ -7,6 +7,7 @@
     <style>
         :root {
             --bg-color: #0f0f17;
+            --bg-glass: rgba(15, 15, 23, 0.8);
             --card-bg: #1a1a2e;
             --border-color: #2a2a4a;
             --accent-color: #7c3aed;
@@ -42,7 +43,22 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            z-index: 10;
+            z-index: 100;
+            position: sticky;
+            top: 0;
+            backdrop-filter: blur(10px);
+            background-color: var(--bg-glass);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 1.5rem;
         }
 
         h1 {
@@ -51,6 +67,7 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            white-space: nowrap;
         }
 
         .config-toggle {
@@ -76,6 +93,16 @@
             padding: 1.5rem;
             gap: 1.5rem;
             scroll-behavior: smooth;
+        }
+
+        .tab-content {
+            display: none;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .tab-content.active {
+            display: flex;
         }
 
         /* Panels */
@@ -179,7 +206,7 @@
             padding: 1rem 1.25rem;
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             cursor: pointer;
             background-color: rgba(255, 255, 255, 0.02);
         }
@@ -207,6 +234,11 @@
             display: inline-block;
             box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.7);
             animation: pulse 2s infinite;
+        }
+
+        .pulse-purple {
+            background-color: #a855f7;
+            box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.7);
         }
 
         @keyframes pulse {
@@ -343,6 +375,123 @@
             align-self: flex-start;
         }
 
+        /* Monitor Specific Styles */
+        #monitor-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .monitor-card {
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            background-color: var(--card-bg);
+            overflow: hidden;
+        }
+
+        .monitor-card-header {
+            padding: 1rem;
+            background-color: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .monitor-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .monitor-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .monitor-id { font-family: monospace; color: var(--accent-color); font-weight: bold; }
+
+        .monitor-status-pill {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .monitor-sections {
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .monitor-section {
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+     overflow: hidden;
+        }
+
+        .monitor-section-header {
+            background-color: rgba(255, 255, 255, 0.02);
+            padding: 0.6rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .monitor-section-body {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .monitor-section.collapsed .monitor-section-body { display: none; }
+
+        /* Message Bubbles */
+        .message-list { display: flex; flex-direction: column; gap: 0.75rem; }
+        .msg-bubble {
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            max-width: 90%;
+            font-size: 0.875rem;
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+        .msg-system { background-color: #334155; border-bottom-left-radius: 0; align-self: flex-start; color: #cbd5e1; border: 1px solid #475569; }
+        .msg-user { background-color: #1e3a8a; border-bottom-right-radius: 0; align-self: flex-end; color: #dbeafe; border: 1px solid #1e40af; }
+        .msg-assistant { background-color: #064e3b; border-bottom-left-radius: 0; align-self: flex-start; color: #dcfce7; border: 1px solid #065f46; }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0.5rem 0;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            color: var(--accent-color);
+            border-bottom-color: var(--accent-color);
+        }
+
         /* Final Response */
         #final-response-container {
             display: none;
@@ -425,7 +574,13 @@
 </head>
 <body>
     <header>
-        <h1>🧠 TriSage <span style="color: var(--text-muted); font-weight: 400; font-size: 0.9rem;">— Test Console</span></h1>
+        <div class="header-left">
+            <h1>🧠 TriSage</h1>
+            <nav class="tabs">
+                <button class="tab-btn active" data-tab="console">Console</button>
+                <button class="tab-btn" data-tab="monitor">API Monitor</button>
+            </nav>
+        </div>
         <div style="display: flex; gap: 1rem; align-items: center;">
             <button class="clear-btn" id="clear-btn">Clear View</button>
             <button class="config-toggle" id="config-toggle">Config</button>
@@ -433,42 +588,50 @@
     </header>
 
     <main id="main-scroll">
-        <div class="panel" id="config-panel">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                <div class="form-group">
-                    <label>API Endpoint</label>
-                    <input type="text" id="endpoint-input" value="http://localhost:3000">
+        <div id="console-tab" class="tab-content active">
+            <div class="panel" id="config-panel">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>API Endpoint</label>
+                        <input type="text" id="endpoint-input" value="http://localhost:3000">
+                    </div>
+                    <div class="form-group">
+                        <label>Model ID</label>
+                        <input type="text" id="model-input" value="trisage">
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label>Model ID</label>
-                    <input type="text" id="model-input" value="trisage">
+                    <label>System Prompt (Override)</label>
+                    <textarea id="system-prompt-input" placeholder="Enter system instructions..."></textarea>
                 </div>
             </div>
-            <div class="form-group">
-                <label>System Prompt (Override)</label>
-                <textarea id="system-prompt-input" placeholder="Enter system instructions..."></textarea>
-            </div>
-        </div>
 
-        <div class="panel">
-            <div class="input-area">
-                <div class="form-group" style="flex: 1;">
-                    <label>User Message</label>
-                    <textarea id="user-input" placeholder="Type your complex prompt here..."></textarea>
+            <div class="panel">
+                <div class="input-area">
+                    <div class="form-group" style="flex: 1;">
+                        <label>User Message</label>
+                        <textarea id="user-input" placeholder="Type your complex prompt here..."></textarea>
+                    </div>
+                    <button class="send-btn" id="send-btn">
+                        <span>🚀 Send</span>
+                    </button>
                 </div>
-                <button class="send-btn" id="send-btn">
-                    <span>🚀 Send</span>
-                </button>
+            </div>
+
+            <div id="process-view">
+                <!-- Dynamic events will be injected here -->
+            </div>
+
+            <div class="panel" id="final-response-container">
+                <div class="op-title">Final Synthesized Response</div>
+                <div class="final-response-text" id="final-response-text"></div>
             </div>
         </div>
 
-        <div id="process-view">
-            <!-- Dynamic events will be injected here -->
-        </div>
-
-        <div class="panel" id="final-response-container">
-            <div class="op-title">Final Synthesized Response</div>
-            <div class="final-response-text" id="final-response-text"></div>
+        <div id="monitor-tab" class="tab-content">
+            <div id="monitor-list">
+                <!-- API Monitor cards will be injected here -->
+            </div>
         </div>
     </main>
 
@@ -494,12 +657,40 @@
             timer: document.getElementById('timer'),
             statusText: document.getElementById('status-text'),
             roundsInfo: document.getElementById('rounds-info'),
-            mainScroll: document.getElementById('main-scroll')
+            mainScroll: document.getElementById('main-scroll'),
+            monitorList: document.getElementById('monitor-list')
         };
+
+        // Tab Switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabName = btn.getAttribute('data-tab');
+                
+                // Update buttons
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Update content
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById(`${tabName}-tab`).classList.add('active');
+            });
+        });
 
         let startTime = 0;
         let timerInterval = null;
         let currentRounds = 1;
+
+        // Console Scope
+        const consoleScope = {
+            id: 'console',
+            processView: elements.processView,
+            roundsInfo: elements.roundsInfo,
+            finalResponseContainer: elements.finalResponseContainer,
+            finalResponseText: elements.finalResponseText,
+            mainScroll: elements.mainScroll,
+            activeOpCard: null,
+            activeSubroundSection: null
+        };
 
         // Toggle Config
         elements.configToggle.addEventListener('click', () => {
@@ -541,7 +732,7 @@
             try {
                 await streamOrchestration(messages);
             } catch (error) {
-                handleEvent({ type: 'orchestration:error', data: { error: error.message } });
+                handleEvent({ type: 'orchestration:error', data: { error: error.message } }, consoleScope);
             } finally {
                 elements.sendBtn.disabled = false;
                 clearInterval(timerInterval);
@@ -594,7 +785,7 @@
                     
                     try {
                         const event = JSON.parse(dataStr);
-                        handleEvent(event);
+                        handleEvent(event, consoleScope);
                     } catch (e) {
                         console.error('Parse error', e, dataStr);
                     }
@@ -603,64 +794,61 @@
         }
 
         // Event Handling
-        let activeOpCard = null;
-        let activeSubroundSection = null;
-
-        function handleEvent(event) {
+        function handleEvent(event, scope) {
             const { type, data, timestamp } = event;
-            console.log(`Event: ${type}`, data);
+            console.log(`[${scope.id}] Event: ${type}`, data);
 
             switch (type) {
                 case 'orchestration:start':
-                    elements.roundsInfo.innerText = 'Rounds: 1';
+                    if (scope.roundsInfo) scope.roundsInfo.innerText = 'Rounds: 1';
                     break;
 
                 case 'operationA:start':
-                    createOpCard(`Operation A — Debate (Round ${data.round})`, 'debate');
-                    elements.roundsInfo.innerText = `Rounds: ${data.round}`;
+                    createOpCard(`Operation A — Debate (Round ${data.round})`, 'debate', scope);
+                    if (scope.roundsInfo) scope.roundsInfo.innerText = `Rounds: ${data.round}`;
                     break;
 
                 case 'operationA:phase1:start':
-                    createSubroundSection(`Sub-round ${data.subRound} — Phase 1: Parallel Generation`, `phase1-${data.subRound}`);
+                    createSubroundSection(`Sub-round ${data.subRound} — Phase 1: Parallel Generation`, `phase1-${data.subRound}`, scope);
                     const row = document.createElement('div');
                     row.className = 'agent-responses-row';
-                    row.id = `responses-row-${data.subRound}`;
-                    activeSubroundSection.appendChild(row);
+                    row.id = `responses-row-${scope.id}-${data.subRound}`;
+                    scope.activeSubroundSection.appendChild(row);
                     // Pre-create agent cards for streaming
                     if (data.agentIds) {
                         data.agentIds.forEach((id, idx) => {
-                            createStreamingAgentCard(row, id, idx);
+                            createStreamingAgentCard(row, id, idx, scope);
                         });
                     }
                     break;
 
                 case 'operationA:phase1:stream':
-                    appendToAgentCard(data.agentId, data.token);
+                    appendToAgentCard(data.agentId, data.token, scope);
                     break;
 
                 case 'operationA:phase1:response':
-                    finalizeAgentCard(data.agentId, data.fullResponse || data.responsePreview);
+                    finalizeAgentCard(data.agentId, data.fullResponse || data.responsePreview, scope);
                     break;
 
                 case 'operationK:stream':
-                    if (!elements.finalResponseContainer.classList.contains('visible')) {
-                        elements.finalResponseContainer.classList.add('visible');
-                        elements.finalResponseText.innerText = '';
+                    if (!scope.finalResponseContainer.classList.contains('visible')) {
+                        scope.finalResponseContainer.classList.add('visible');
+                        scope.finalResponseText.innerText = '';
                     }
-                    elements.finalResponseText.innerText += data.token;
-                    elements.mainScroll.scrollTop = elements.mainScroll.scrollHeight;
+                    scope.finalResponseText.innerText += data.token;
+                    if (scope.mainScroll) scope.mainScroll.scrollTop = scope.mainScroll.scrollHeight;
                     break;
 
                 case 'operationA:phase2:start':
-                    createSubroundSection(`Sub-round ${data.subRound} — Phase 2: Cross-Review & Vote`, `phase2-${data.subRound}`);
+                    createSubroundSection(`Sub-round ${data.subRound} — Phase 2: Cross-Review & Vote`, `phase2-${data.subRound}`, scope);
                     const votesList = document.createElement('div');
                     votesList.className = 'votes-list';
-                    votesList.id = `votes-list-a-${data.subRound}`;
-                    activeSubroundSection.appendChild(votesList);
+                    votesList.id = `votes-list-a-${scope.id}-${data.subRound}`;
+                    scope.activeSubroundSection.appendChild(votesList);
                     break;
 
                 case 'operationA:phase2:vote':
-                    const alist = document.getElementById(`votes-list-a-${data.subRound}`);
+                    const alist = document.getElementById(`votes-list-a-${scope.id}-${data.subRound}`);
                     if (alist) {
                         addVoteItem(alist, data.agentId, data.decision, data.reasoning);
                     }
@@ -670,20 +858,19 @@
                     const resDiv = document.createElement('div');
                     resDiv.className = 'result-summary';
                     resDiv.innerHTML = `📊 Result: ${data.keepCount} keep / ${data.reviseCount} revise → ${data.majorityReached ? 'Consensus Reached' : 'No Consensus'}`;
-                    activeSubroundSection.appendChild(resDiv);
+                    scope.activeSubroundSection.appendChild(resDiv);
                     break;
 
                 case 'operationB:start':
-                    createOpCard(`Operation B — Review (Round ${data.round})`, 'review');
+                    createOpCard(`Operation B — Review (Round ${data.round})`, 'review', scope);
                     const bVotesList = document.createElement('div');
                     bVotesList.className = 'votes-list';
-                    bVotesList.id = `votes-list-b-${data.round}`;
-                    activeOpCard.querySelector('.op-body').appendChild(bVotesList);
+                    bVotesList.id = `votes-list-b-${scope.id}-${data.round}`;
+                    scope.activeOpCard.querySelector('.op-body').appendChild(bVotesList);
                     break;
 
                 case 'operationB:vote':
-                    const blist = document.getElementById(`votes-list-b`); // Generic fallback or use current op
-                    const currentBList = activeOpCard.querySelector('.votes-list');
+                    const currentBList = scope.activeOpCard.querySelector('.votes-list');
                     if (currentBList) {
                         addVoteItem(currentBList, data.agentId, data.decision, data.reasoning);
                     }
@@ -694,42 +881,42 @@
                     bResultDiv.className = 'result-summary';
                     const color = data.decision === 'accept' ? 'var(--keep-color)' : 'var(--error-color)';
                     bResultDiv.innerHTML = `📊 Decision: <span style="color: ${color}; text-transform: uppercase;">${data.decision}</span>`;
-                    activeOpCard.querySelector('.op-body').appendChild(bResultDiv);
+                    scope.activeOpCard.querySelector('.op-body').appendChild(bResultDiv);
                     break;
 
                 case 'operationK:start':
-                    createOpCard(`Operation K — Synthesis`, 'synthesis');
+                    createOpCard(`Operation K — Synthesis`, 'synthesis', scope);
                     break;
 
                 case 'operationK:complete':
-                    const kStatus = activeOpCard.querySelector('.op-status');
+                    const kStatus = scope.activeOpCard.querySelector('.op-status');
                     kStatus.innerHTML = `🟢 Complete (${data.responseLength} chars)`;
                     break;
 
                 case 'result':
-                    elements.finalResponseContainer.classList.add('visible');
-                    elements.finalResponseText.innerText = data.response;
+                    scope.finalResponseContainer.classList.add('visible');
+                    scope.finalResponseText.innerText = data.response;
                     setTimeout(() => {
-                        elements.finalResponseContainer.scrollIntoView({ behavior: 'smooth' });
+                        scope.finalResponseContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     }, 100);
                     break;
 
                 case 'orchestration:error':
-                    elements.statusText.innerHTML = `<span style="color: var(--error-color)">🔴 Error</span>`;
+                    if (scope.statusText) scope.statusText.innerHTML = `<span style="color: var(--error-color)">🔴 Error</span>`;
                     const errDiv = document.createElement('div');
                     errDiv.className = 'panel';
                     errDiv.style.borderColor = 'var(--error-color)';
                     errDiv.style.color = 'var(--error-color)';
                     errDiv.innerText = `Error: ${data.error}`;
-                    elements.processView.appendChild(errDiv);
+                    scope.processView.appendChild(errDiv);
                     break;
             }
 
             // Auto-scroll
-            elements.mainScroll.scrollTop = elements.mainScroll.scrollHeight;
+            if (scope.mainScroll) scope.mainScroll.scrollTop = scope.mainScroll.scrollHeight;
         }
 
-        function createOpCard(title, type) {
+        function createOpCard(title, type, scope) {
             const card = document.createElement('div');
             card.className = 'panel op-card';
             card.innerHTML = `
@@ -745,37 +932,37 @@
                 card.classList.toggle('collapsed');
             });
 
-            elements.processView.appendChild(card);
-            activeOpCard = card;
+            scope.processView.appendChild(card);
+            scope.activeOpCard = card;
         }
 
-        function createSubroundSection(title, id) {
+        function createSubroundSection(title, id, scope) {
             const section = document.createElement('div');
             section.className = 'subround-section';
-            section.id = id;
+            section.id = `${scope.id}-${id}`;
             section.innerHTML = `<div class="subround-title">${title}</div>`;
-            activeOpCard.querySelector('.op-body').appendChild(section);
-            activeSubroundSection = section;
+            scope.activeOpCard.querySelector('.op-body').appendChild(section);
+            scope.activeSubroundSection = section;
         }
 
-        function createStreamingAgentCard(container, agentId, index) {
+        function createStreamingAgentCard(container, agentId, index, scope) {
             const card = document.createElement('div');
             card.className = 'agent-card';
-            card.id = `agent-card-${agentId}`;
+            card.id = `agent-card-${scope.id}-${agentId}`;
             card.innerHTML = `
                 <div class="agent-card-header">
                     <span>🤖 Agent ${index + 1}</span>
                     <span class="agent-card-status" style="font-size: 0.75rem; color: var(--accent-color);"><span class="pulse"></span> Generating...</span>
                 </div>
                 <div class="agent-card-body">
-                    <div class="stream-content" id="stream-${agentId}" style="white-space: pre-wrap; min-height: 60px; font-size: 0.8125rem; max-height: 200px; overflow-y: auto;"></div>
+                    <div class="stream-content" id="stream-${scope.id}-${agentId}" style="white-space: pre-wrap; min-height: 60px; font-size: 0.8125rem; max-height: 200px; overflow-y: auto;"></div>
                 </div>
             `;
             container.appendChild(card);
         }
 
-        function appendToAgentCard(agentId, token) {
-            const streamEl = document.getElementById(`stream-${agentId}`);
+        function appendToAgentCard(agentId, token, scope) {
+            const streamEl = document.getElementById(`stream-${scope.id}-${agentId}`);
             if (streamEl) {
                 streamEl.textContent += token;
                 // Auto-scroll within the card
@@ -783,8 +970,8 @@
             }
         }
 
-        function finalizeAgentCard(agentId, fullResponse) {
-            const card = document.getElementById(`agent-card-${agentId}`);
+        function finalizeAgentCard(agentId, fullResponse, scope) {
+            const card = document.getElementById(`agent-card-${scope.id}-${agentId}`);
             if (!card) return;
             
             // Update status
@@ -848,6 +1035,141 @@
             `;
             container.appendChild(item);
         }
+
+        // --- Monitor Logic ---
+        const monitorStates = new Map();
+
+        function connectMonitor() {
+            const endpoint = elements.endpointInput.value.trim();
+            const es = new EventSource(`${endpoint}/v1/monitor`);
+            
+            es.onmessage = (e) => {
+                try {
+                    const event = JSON.parse(e.data);
+                    handleMonitorEvent(event);
+                } catch (err) {
+                    console.error('Monitor parse error', err);
+                }
+            };
+            
+            es.onerror = () => {
+                console.log('Monitor connection lost. Reconnecting...');
+                es.close();
+                setTimeout(connectMonitor, 3000);
+            };
+        }
+
+        function handleMonitorEvent(event) {
+            const { type, monitorId, timestamp, data } = event;
+            
+            if (type === 'request:start') {
+                createMonitorCard(monitorId, timestamp, data);
+                return;
+            }
+            
+            const state = monitorStates.get(monitorId);
+            if (!state) return;
+            
+            if (type === 'progress') {
+                handleEvent(data, state);
+            } else if (type === 'request:complete') {
+                updateMonitorStatus(monitorId, 'complete', data);
+            } else if (type === 'request:error') {
+                updateMonitorStatus(monitorId, 'error', data);
+            }
+        }
+
+        function createMonitorCard(id, timestamp, data) {
+            const card = document.createElement('div');
+            card.className = 'monitor-card';
+            card.id = `monitor-${id}`;
+            
+            const timeStr = new Date(timestamp).toLocaleTimeString();
+            
+            card.innerHTML = `
+                <div class="monitor-card-header">
+                    <div class="monitor-info">
+                        <div class="monitor-meta">
+                            <span class="monitor-id">#${id}</span>
+                            <span>${timeStr}</span>
+                            <span>Model: ${data.model}</span>
+                            <span>${data.stream ? '⚡ Stream' : '📦 Non-stream'}</span>
+                        </div>
+                    </div>
+                    <div class="monitor-status-pill" id="status-pill-${id}">
+                        <span class="pulse pulse-purple"></span> Running
+                    </div>
+                </div>
+                <div class="monitor-sections">
+                    <div class="monitor-section">
+                        <div class="monitor-section-header" onclick="this.parentElement.classList.toggle('collapsed')">Request <span>▼</span></div>
+                        <div class="monitor-section-body message-list">
+                            ${data.messages.map(m => `
+                                <div class="msg-bubble msg-${m.role}">${escapeHtml(m.content)}</div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="monitor-section">
+                        <div class="monitor-section-header" onclick="this.parentElement.classList.toggle('collapsed')">Process <span>▼</span></div>
+                        <div class="monitor-section-body" id="monitor-process-${id}"></div>
+                    </div>
+                    <div class="monitor-section">
+                        <div class="monitor-section-header" onclick="this.parentElement.classList.toggle('collapsed')">Response <span>▼</span></div>
+                        <div class="monitor-section-body" id="monitor-response-container-${id}" style="display:none">
+                            <pre id="monitor-response-${id}" style="white-space: pre-wrap; font-size: 0.9rem;"></pre>
+                            <div id="monitor-duration-${id}" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Prepend to list
+            elements.monitorList.insertBefore(card, elements.monitorList.firstChild);
+            
+            // Initialize state
+            const state = {
+                id: id,
+                processView: document.getElementById(`monitor-process-${id}`),
+                finalResponseContainer: document.getElementById(`monitor-response-container-${id}`),
+                finalResponseText: document.getElementById(`monitor-response-${id}`),
+                mainScroll: null,
+                activeOpCard: null,
+                activeSubroundSection: null
+            };
+            monitorStates.set(id, state);
+        }
+
+        function updateMonitorStatus(id, status, data) {
+            const pill = document.getElementById(`status-pill-${id}`);
+            if (!pill) return;
+            
+            if (status === 'complete') {
+                pill.innerHTML = `<span class="status-dot" style="background-color: var(--keep-color)"></span> Complete`;
+                const container = document.getElementById(`monitor-response-container-${id}`);
+                const text = document.getElementById(`monitor-response-${id}`);
+                const duration = document.getElementById(`monitor-duration-${id}`);
+                
+                if (container) container.style.display = 'block';
+                if (text) text.innerText = data.response;
+                if (duration) duration.innerText = `Duration: ${(data.duration / 1000).toFixed(2)}s`;
+            } else if (status === 'error') {
+                pill.innerHTML = `<span class="status-dot" style="background-color: var(--error-color)"></span> Error`;
+                const container = document.getElementById(`monitor-response-container-${id}`);
+                const text = document.getElementById(`monitor-response-${id}`);
+                
+                if (container) {
+                    container.style.display = 'block';
+                    container.style.borderColor = 'var(--error-color)';
+                }
+                if (text) {
+                    text.style.color = 'var(--error-color)';
+                    text.innerText = `Error: ${data.error}`;
+                }
+            }
+        }
+
+        // Start monitor on load
+        window.addEventListener('load', connectMonitor);
     </script>
 </body>
 </html>

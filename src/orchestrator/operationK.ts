@@ -2,7 +2,7 @@ import { EventEmitter } from "events";
 import { ChatMessage, TriSageConfig, AgentResponse, ToolDefinition, ToolCall } from "../types";
 import { LLMProvider } from "../providers/openai";
 import { Logger } from "../utils/logger";
-import { getSynthesisPrompt } from "../prompts/synthesisPrompt";
+import { buildSynthesisUserMessage } from "../prompts/synthesisPrompt";
 import { ProgressEventType } from "./events";
 
 export interface OperationKResult {
@@ -41,11 +41,10 @@ export async function executeOperationK(
     .join("\n");
 
   const hasTools = !!(userTools && userTools.length > 0);
-  const synthesisPrompt = getSynthesisPrompt(keepGroups, dissentGroups, history, hasTools);
-  
+  const synthesisUserContent = buildSynthesisUserMessage(messages, keepGroups, dissentGroups, history, hasTools);
+
   const finalMessages: ChatMessage[] = [
-    { role: "system", content: synthesisPrompt },
-    ...messages
+    { role: "user", content: synthesisUserContent },
   ];
 
   // If user has tools, use tool-capable completion

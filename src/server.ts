@@ -11,11 +11,34 @@ import { createProgressEmitter, ProgressEvent } from "./orchestrator/events";
 
 const app = express();
 
+// Monitor SSE connections
+const monitorClients: Set<Response> = new Set();
+
+// Monitor SSE endpoint
+app.get("/v1/monitor", (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.write(": ok\n\n");
+  monitorClients.add(res);
+  req.on("close", () => { monitorClients.delete(res); });
+});
+
+function broadcastMonitor(event: any) {
+  const data = `data: ${JSON.stringify(event)}\n\n`;
+  for (const client of monitorClients) {
+    client.write(data);
+  }
+}
+
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
 // OpenAI-compatible Chat Completion endpoint
 app.post("/v1/chat/completions", async (req: Request, res: Response, next: NextFunction) => {
+  let monitorId: string | undefined;
+  let requestStartTime: number | undefined;
   try {
     const { model, messages, tools, stream } = req.body as ChatCompletionRequest;
 
@@ -23,6 +46,21 @@ app.post("/v1/chat/completions", async (req: Request, res: Response, next: NextF
       return res.status(400).json({ error: "Messages array is required" });
     }
     const requestId = `chatcmpl-${crypto.randomUUID()}`;
+    monitorId = crypto.randomUUID().slice(0, 8);
+    requestStartTime = Date.now();
+
+    broadcastMonitor({
+      type: "request:start",
+      monitorId,
+      timestamp: requestStartTime,
+      data: {
+        model: model || "trisage",
+        stream: !!stream,
+        messages: messages, // Full messages
+        hasTools: !!(tools && tools.length > 0),
+        toolCount: tools?.length || 0,
+      }
+    });
 
     if (tools && tools.length > 0) {
       logger.info(`[TriSage] User-passed ${tools.length} tools. Will be promptified for debate, real for synthesis.`);
@@ -56,6 +94,11 @@ app.post("/v1/chat/completions", async (req: Request, res: Response, next: NextF
       };
 
       emitter.on("progress", (event: ProgressEvent) => {
+        broadcastMonitor({
+          type: "progress",
+          monitorId,
+          data: event,
+        });
         if (event.type === "reasoning") {
           const delta: any = {};
           if (firstChunk) {
@@ -91,10 +134,31 @@ app.post("/v1/chat/completions", async (req: Request, res: Response, next: NextF
         }
         
         res.write("data: [DONE]\n\n");
+
+        broadcastMonitor({
+          type: "request:complete",
+          monitorId,
+          timestamp: Date.now(),
+          data: {
+            response: result.response,
+            reasoning_content: result.reasoning_content,
+            toolCalls: result.toolCalls,
+            duration: Date.now() - requestStartTime,
+          }
+        });
+
         res.end();
       } catch (error: any) {
         logger.error(`Streaming orchestration failed: ${error.message}`);
         // OpenAI doesn't have a standard way to send errors mid-stream other than closing or sending a partial JSON
+
+        broadcastMonitor({
+          type: "request:error",
+          monitorId,
+          timestamp: Date.now(),
+          data: { error: error.message }
+        });
+
         res.write(`data: ${JSON.stringify({ error: { message: error.message } })}\n\n`);
         res.write("data: [DONE]\n\n");
         res.end();
@@ -103,7 +167,30 @@ app.post("/v1/chat/completions", async (req: Request, res: Response, next: NextF
     }
 
     // Non-streaming logic
-    const result = await orchestrate(messages, config, undefined, tools);
+    const emitter = createProgressEmitter();
+    emitter.on("progress", (event) => {
+      broadcastMonitor({
+        type: "progress",
+        monitorId,
+        data: event,
+      });
+    });
+
+    const result = await orchestrate(messages, config, emitter, tools);
+
+    const duration = Date.now() - requestStartTime;
+
+    broadcastMonitor({
+      type: "request:complete",
+      monitorId,
+      timestamp: Date.now(),
+      data: {
+        response: result.response,
+        reasoning_content: result.reasoning_content,
+        toolCalls: result.toolCalls,
+        duration,
+      }
+    });
 
     const hasToolCalls = result.toolCalls && result.toolCalls.length > 0;
 
@@ -134,6 +221,15 @@ app.post("/v1/chat/completions", async (req: Request, res: Response, next: NextF
 
     res.json(response);
   } catch (error: any) {
+    if (monitorId) {
+      broadcastMonitor({
+        type: "request:error",
+        monitorId,
+        timestamp: Date.now(),
+        data: { error: error.message }
+      });
+    }
+
     next(error);
   }
 });

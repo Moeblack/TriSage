@@ -2,7 +2,7 @@ import { EventEmitter } from "events";
 import { ChatMessage, TriSageConfig, OperationAResult, RoundResult, AgentResponse, Vote } from "../types";
 import { LLMProvider } from "../providers/openai";
 import { Logger } from "../utils/logger";
-import { getIndependentGenerationPrompt, getCrossReviewPrompt } from "../prompts/debatePrompt";
+import { buildGenerationUserMessage, buildCrossReviewUserMessage } from "../prompts/debatePrompt";
 import { debateVoteTool } from "../agents/tools";
 import { majorityReached } from "./voteCounter";
 import { ProgressEventType } from "./events";
@@ -41,15 +41,12 @@ export async function executeOperationA(
     emit("operationA:phase1:start", { subRound, agentCount: activeCount, agentIds });
 
     // ── Phase 1: Parallel Independent Generation ──
-    const systemMsg: ChatMessage = {
-      role: "system",
-      content: getIndependentGenerationPrompt(toolContext),
-    };
-
     const phase1Responses: AgentResponse[] = await Promise.all(
       agentIds.map((agentId, index) =>
         provider.chatCompletionStream(
-          [systemMsg, ...messages],
+          [
+            { role: "user", content: buildGenerationUserMessage(messages, toolContext) }
+          ],
           (token: string) => {
             emit("operationA:phase1:stream", {
               subRound,
@@ -84,10 +81,8 @@ export async function executeOperationA(
     const phase2Results = await Promise.all(
       phase1Responses.map(async (own, i) => {
         const others = phase1Responses.filter((_, j) => j !== i);
-        const reviewContent = getCrossReviewPrompt(own.response, others, toolContext);
         const reviewMessages: ChatMessage[] = [
-          { role: "system", content: reviewContent },
-          ...messages,
+          { role: "user", content: buildCrossReviewUserMessage(messages, own.response, others, toolContext) },
         ];
         const result = await provider.chatCompletionWithVote(reviewMessages, [debateVoteTool]);
         emit("operationA:phase2:vote", { 
@@ -166,8 +161,7 @@ export async function executeOperationA(
   if (finalKeepGroup.length === 0 && finalDissentGroup.length === 0) {
     logger.warn("Operation A produced no results — fallback to single generation");
     const fallback = await provider.chatCompletion([
-      { role: "system", content: getIndependentGenerationPrompt(toolContext) },
-      ...messages,
+      { role: "user", content: buildGenerationUserMessage(messages, toolContext) },
     ]);
     finalKeepGroup.push(fallback);
   }

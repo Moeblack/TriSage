@@ -2,7 +2,7 @@ import { EventEmitter } from "events";
 import { ChatMessage, TriSageConfig, OperationAResult, OperationBResult, Vote } from "../types";
 import { LLMProvider } from "../providers/openai";
 import { Logger } from "../utils/logger";
-import { getReviewPrompt } from "../prompts/reviewPrompt";
+import { buildReviewUserMessage } from "../prompts/reviewPrompt";
 import { reviewVoteTool } from "../agents/tools";
 import { countVotes } from "./voteCounter";
 import { ProgressEventType } from "./events";
@@ -32,11 +32,9 @@ export async function executeOperationB(
   }
 
   // Phase 1: New Agents Reviewing the Debate Output
-  const reviewPrompt = getReviewPrompt(operationAResult.keepGroup, operationAResult.dissentGroup, toolContext);
   const prompts = Array.from({ length: config.agentCount }, () => [
-    { role: "system", content: reviewPrompt } as ChatMessage,
-    ...messages
-  ]);
+    { role: "user", content: buildReviewUserMessage(messages, operationAResult.keepGroup, operationAResult.dissentGroup, toolContext) } as ChatMessage,
+  ] as ChatMessage[]);
 
   const reviewResults = await Promise.all(
     prompts.map(async (p) => {
