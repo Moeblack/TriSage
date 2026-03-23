@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepThink API — Test Console</title>
+    <style>
+        :root {
+            --bg-color: #0f0f17;
+            --card-bg: #1a1a2e;
+            --border-color: #2a2a4a;
+            --accent-color: #7c3aed;
+            --text-color: #e2e8f0;
+            --text-muted: #94a3b8;
+            --keep-color: #22c55e;
+            --revise-color: #f59e0b;
+            --error-color: #ef4444;
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            padding: 1rem 2rem;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .config-toggle {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.4rem 0.8rem;
+            border-radius: 0.4rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .config-toggle:hover {
+            background-color: var(--border-color);
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 1.5rem;
+            gap: 1.5rem;
+            scroll-behavior: smooth;
+        }
+
+        /* Panels */
+        .panel {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+        }
+
+        /* Config Panel */
+        #config-panel {
+            display: none;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        #config-panel.open {
+            display: flex;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        input, textarea {
+            background-color: #0a0a14;
+            border: 1px solid var(--border-color);
+            border-radius: 0.4rem;
+            padding: 0.6rem 0.8rem;
+            color: var(--text-color);
+            font-family: inherit;
+            font-size: 0.9375rem;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        /* Input Area */
+        .input-area {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+
+        .input-area textarea {
+            flex: 1;
+            min-height: 100px;
+        }
+
+        .send-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.4rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            height: 48px;
+        }
+
+        .send-btn:hover {
+            opacity: 0.9;
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Process View */
+        #process-view {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .op-card {
+            border-left: 4px solid var(--accent-color);
+            padding: 0;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .op-header {
+            padding: 1rem 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .op-title {
+            font-weight: 700;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .op-status {
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .pulse {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.7);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(124, 58, 237, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
+        }
+
+        .op-body {
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .subround-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding-left: 1rem;
+            border-left: 2px solid var(--border-color);
+        }
+
+        .subround-title {
+            font-weight: 600;
+            font-size: 0.9375rem;
+            color: var(--text-muted);
+        }
+
+        .agent-responses-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .agent-card {
+            flex: 1;
+            min-width: 280px;
+            background-color: #111122;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .agent-card-header {
+            padding: 0.6rem 0.8rem;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.8125rem;
+            font-weight: 600;
+            background-color: rgba(255, 255, 255, 0.03);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .agent-card-body {
+            padding: 0.8rem;
+            font-size: 0.875rem;
+            flex: 1;
+            position: relative;
+        }
+
+        .content-preview {
+            display: -webkit-box;
+            -webkit-line-clamp: 5;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            white-space: pre-wrap;
+        }
+
+        .content-full {
+            display: none;
+            white-space: pre-wrap;
+        }
+
+        .expand-btn {
+            background: none;
+            border: none;
+            color: var(--accent-color);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0.4rem 0;
+            display: block;
+            margin-top: 0.5rem;
+        }
+
+        .votes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .vote-item {
+            padding: 0.75rem;
+            background-color: #111122;
+            border-radius: 0.4rem;
+            font-size: 0.875rem;
+            border: 1px solid transparent;
+        }
+
+        .vote-keep { border-color: rgba(34, 197, 94, 0.2); }
+        .vote-revise { border-color: rgba(245, 158, 11, 0.2); }
+        .vote-accept { border-color: rgba(34, 197, 94, 0.2); }
+        .vote-redo { border-color: rgba(239, 68, 68, 0.2); }
+
+        .vote-badge {
+            display: inline-block;
+            padding: 0.1rem 0.4rem;
+            border-radius: 0.25rem;
+            font-weight: 700;
+            font-size: 0.75rem;
+            margin-right: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .badge-keep, .badge-accept { background-color: var(--keep-color); color: #fff; }
+        .badge-revise { background-color: var(--revise-color); color: #fff; }
+        .badge-redo { background-color: var(--error-color); color: #fff; }
+
+        .vote-reason {
+            margin-top: 0.25rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .result-summary {
+            font-weight: 600;
+            font-size: 0.875rem;
+            padding: 0.5rem 0.75rem;
+            background-color: rgba(124, 58, 237, 0.1);
+            border-radius: 0.4rem;
+            align-self: flex-start;
+        }
+
+        /* Final Response */
+        #final-response-container {
+            display: none;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        #final-response-container.visible {
+            display: flex;
+        }
+
+        .final-response-text {
+            white-space: pre-wrap;
+            font-size: 1rem;
+        }
+
+        /* Footer */
+        footer {
+            padding: 0.75rem 2rem;
+            background-color: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+        }
+
+        .timer {
+            font-family: monospace;
+            font-size: 1rem;
+            color: var(--text-color);
+        }
+
+        .clear-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.3rem;
+            cursor: pointer;
+        }
+
+        .clear-btn:hover {
+            color: var(--text-color);
+            border-color: var(--text-muted);
+        }
+
+        /* Collapsible helpers */
+        .hidden { display: none !important; }
+        .collapsed .op-body { display: none; }
+        .collapsed .op-header::after { content: '▶'; }
+        .op-header::after { content: '▼'; font-size: 0.75rem; color: var(--text-muted); }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-color); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3a3a5a; }
+
+        .stream-content {
+            position: relative;
+        }
+
+        .stream-content::after {
+            content: '▊';
+            animation: blink 1s step-start infinite;
+            color: var(--accent-color);
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        .stream-content.done::after {
+            display: none;
+        }
+
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🧠 DeepThink API <span style="color: var(--text-muted); font-weight: 400; font-size: 0.9rem;">— Test Console</span></h1>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <button class="clear-btn" id="clear-btn">Clear View</button>
+            <button class="config-toggle" id="config-toggle">Config</button>
+        </div>
+    </header>
+
+    <main id="main-scroll">
+        <div class="panel" id="config-panel">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label>API Endpoint</label>
+                    <input type="text" id="endpoint-input" value="http://localhost:3000">
+                </div>
+                <div class="form-group">
+                    <label>Model ID</label>
+                    <input type="text" id="model-input" value="deepthink">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>System Prompt (Override)</label>
+                <textarea id="system-prompt-input" placeholder="Enter system instructions..."></textarea>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="input-area">
+                <div class="form-group" style="flex: 1;">
+                    <label>User Message</label>
+                    <textarea id="user-input" placeholder="Type your complex prompt here..."></textarea>
+                </div>
+                <button class="send-btn" id="send-btn">
+                    <span>🚀 Send</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="process-view">
+            <!-- Dynamic events will be injected here -->
+        </div>
+
+        <div class="panel" id="final-response-container">
+            <div class="op-title">Final Synthesized Response</div>
+            <div class="final-response-text" id="final-response-text"></div>
+        </div>
+    </main>
+
+    <footer>
+        <div id="status-text">Ready</div>
+        <div class="timer" id="timer">00:00.0</div>
+        <div id="rounds-info">Rounds: 0</div>
+    </footer>
+
+    <script>
+        const elements = {
+            configToggle: document.getElementById('config-toggle'),
+            configPanel: document.getElementById('config-panel'),
+            endpointInput: document.getElementById('endpoint-input'),
+            modelInput: document.getElementById('model-input'),
+            systemPromptInput: document.getElementById('system-prompt-input'),
+            userInput: document.getElementById('user-input'),
+            sendBtn: document.getElementById('send-btn'),
+            clearBtn: document.getElementById('clear-btn'),
+            processView: document.getElementById('process-view'),
+            finalResponseContainer: document.getElementById('final-response-container'),
+            finalResponseText: document.getElementById('final-response-text'),
+            timer: document.getElementById('timer'),
+            statusText: document.getElementById('status-text'),
+            roundsInfo: document.getElementById('rounds-info'),
+            mainScroll: document.getElementById('main-scroll')
+        };
+
+        let startTime = 0;
+        let timerInterval = null;
+        let currentRounds = 1;
+
+        // Toggle Config
+        elements.configToggle.addEventListener('click', () => {
+            elements.configPanel.classList.toggle('open');
+        });
+
+        // Clear View
+        elements.clearBtn.addEventListener('click', () => {
+            elements.processView.innerHTML = '';
+            elements.finalResponseContainer.classList.remove('visible');
+            elements.finalResponseText.innerText = '';
+            elements.statusText.innerText = 'Ready';
+            elements.timer.innerText = '00:00.0';
+            elements.roundsInfo.innerText = 'Rounds: 0';
+        });
+
+        // Send Message
+        elements.sendBtn.addEventListener('click', async () => {
+            const userMsg = elements.userInput.value.trim();
+            if (!userMsg) return;
+
+            const messages = [];
+            if (elements.systemPromptInput.value.trim()) {
+                messages.push({ role: 'system', content: elements.systemPromptInput.value.trim() });
+            }
+            messages.push({ role: 'user', content: userMsg });
+
+            // Reset UI
+            elements.processView.innerHTML = '';
+            elements.finalResponseContainer.classList.remove('visible');
+            elements.sendBtn.disabled = true;
+            elements.statusText.innerHTML = '<span class="pulse"></span> Running';
+            
+            // Timer
+            startTime = Date.now();
+            clearInterval(timerInterval);
+            timerInterval = setInterval(updateTimer, 100);
+
+            try {
+                await streamOrchestration(messages);
+            } catch (error) {
+                handleEvent({ type: 'orchestration:error', data: { error: error.message } });
+            } finally {
+                elements.sendBtn.disabled = false;
+                clearInterval(timerInterval);
+                if (!elements.statusText.innerText.includes('Error')) {
+                    elements.statusText.innerText = 'Complete';
+                }
+            }
+        });
+
+        function updateTimer() {
+            const elapsed = (Date.now() - startTime) / 1000;
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = (elapsed % 60).toFixed(1);
+            elements.timer.innerText = `${minutes.toString().padStart(2, '0')}:${seconds.padStart(4, '0')}`;
+        }
+
+        async function streamOrchestration(messages) {
+            const endpoint = elements.endpointInput.value.trim();
+            const model = elements.modelInput.value.trim();
+
+            const response = await fetch(`${endpoint}/v1/chat/completions/stream`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ model, messages }),
+            });
+
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(error || 'Server error');
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    const cleanLine = line.trim();
+                    if (!cleanLine || !cleanLine.startsWith('data: ')) continue;
+                    
+                    const dataStr = cleanLine.slice(6);
+                    if (dataStr === '[DONE]') break;
+                    
+                    try {
+                        const event = JSON.parse(dataStr);
+                        handleEvent(event);
+                    } catch (e) {
+                        console.error('Parse error', e, dataStr);
+                    }
+                }
+            }
+        }
+
+        // Event Handling
+        let activeOpCard = null;
+        let activeSubroundSection = null;
+
+        function handleEvent(event) {
+            const { type, data, timestamp } = event;
+            console.log(`Event: ${type}`, data);
+
+            switch (type) {
+                case 'orchestration:start':
+                    elements.roundsInfo.innerText = 'Rounds: 1';
+                    break;
+
+                case 'operationA:start':
+                    createOpCard(`Operation A — Debate (Round ${data.round})`, 'debate');
+                    elements.roundsInfo.innerText = `Rounds: ${data.round}`;
+                    break;
+
+                case 'operationA:phase1:start':
+                    createSubroundSection(`Sub-round ${data.subRound} — Phase 1: Parallel Generation`, `phase1-${data.subRound}`);
+                    const row = document.createElement('div');
+                    row.className = 'agent-responses-row';
+                    row.id = `responses-row-${data.subRound}`;
+                    activeSubroundSection.appendChild(row);
+                    // Pre-create agent cards for streaming
+                    if (data.agentIds) {
+                        data.agentIds.forEach((id, idx) => {
+                            createStreamingAgentCard(row, id, idx);
+                        });
+                    }
+                    break;
+
+                case 'operationA:phase1:stream':
+                    appendToAgentCard(data.agentId, data.token);
+                    break;
+
+                case 'operationA:phase1:response':
+                    finalizeAgentCard(data.agentId, data.fullResponse || data.responsePreview);
+                    break;
+
+                case 'operationK:stream':
+                    if (!elements.finalResponseContainer.classList.contains('visible')) {
+                        elements.finalResponseContainer.classList.add('visible');
+                        elements.finalResponseText.innerText = '';
+                    }
+                    elements.finalResponseText.innerText += data.token;
+                    elements.mainScroll.scrollTop = elements.mainScroll.scrollHeight;
+                    break;
+
+                case 'operationA:phase2:start':
+                    createSubroundSection(`Sub-round ${data.subRound} — Phase 2: Cross-Review & Vote`, `phase2-${data.subRound}`);
+                    const votesList = document.createElement('div');
+                    votesList.className = 'votes-list';
+                    votesList.id = `votes-list-a-${data.subRound}`;
+                    activeSubroundSection.appendChild(votesList);
+                    break;
+
+                case 'operationA:phase2:vote':
+                    const alist = document.getElementById(`votes-list-a-${data.subRound}`);
+                    if (alist) {
+                        addVoteItem(alist, data.agentId, data.decision, data.reasoning);
+                    }
+                    break;
+
+                case 'operationA:subround:result':
+                    const resDiv = document.createElement('div');
+                    resDiv.className = 'result-summary';
+                    resDiv.innerHTML = `📊 Result: ${data.keepCount} keep / ${data.reviseCount} revise → ${data.majorityReached ? 'Consensus Reached' : 'No Consensus'}`;
+                    activeSubroundSection.appendChild(resDiv);
+                    break;
+
+                case 'operationB:start':
+                    createOpCard(`Operation B — Review (Round ${data.round})`, 'review');
+                    const bVotesList = document.createElement('div');
+                    bVotesList.className = 'votes-list';
+                    bVotesList.id = `votes-list-b-${data.round}`;
+                    activeOpCard.querySelector('.op-body').appendChild(bVotesList);
+                    break;
+
+                case 'operationB:vote':
+                    const blist = document.getElementById(`votes-list-b`); // Generic fallback or use current op
+                    const currentBList = activeOpCard.querySelector('.votes-list');
+                    if (currentBList) {
+                        addVoteItem(currentBList, data.agentId, data.decision, data.reasoning);
+                    }
+                    break;
+
+                case 'operationB:complete':
+                    const bResultDiv = document.createElement('div');
+                    bResultDiv.className = 'result-summary';
+                    const color = data.decision === 'accept' ? 'var(--keep-color)' : 'var(--error-color)';
+                    bResultDiv.innerHTML = `📊 Decision: <span style="color: ${color}; text-transform: uppercase;">${data.decision}</span>`;
+                    activeOpCard.querySelector('.op-body').appendChild(bResultDiv);
+                    break;
+
+                case 'operationK:start':
+                    createOpCard(`Operation K — Synthesis`, 'synthesis');
+                    break;
+
+                case 'operationK:complete':
+                    const kStatus = activeOpCard.querySelector('.op-status');
+                    kStatus.innerHTML = `🟢 Complete (${data.responseLength} chars)`;
+                    break;
+
+                case 'result':
+                    elements.finalResponseContainer.classList.add('visible');
+                    elements.finalResponseText.innerText = data.response;
+                    setTimeout(() => {
+                        elements.finalResponseContainer.scrollIntoView({ behavior: 'smooth' });
+                    }, 100);
+                    break;
+
+                case 'orchestration:error':
+                    elements.statusText.innerHTML = `<span style="color: var(--error-color)">🔴 Error</span>`;
+                    const errDiv = document.createElement('div');
+                    errDiv.className = 'panel';
+                    errDiv.style.borderColor = 'var(--error-color)';
+                    errDiv.style.color = 'var(--error-color)';
+                    errDiv.innerText = `Error: ${data.error}`;
+                    elements.processView.appendChild(errDiv);
+                    break;
+            }
+
+            // Auto-scroll
+            elements.mainScroll.scrollTop = elements.mainScroll.scrollHeight;
+        }
+
+        function createOpCard(title, type) {
+            const card = document.createElement('div');
+            card.className = 'panel op-card';
+            card.innerHTML = `
+                <div class="op-header">
+                    <div class="op-title">${title}</div>
+                    <div class="op-status"><span class="pulse"></span> Running</div>
+                </div>
+                <div class="op-body"></div>
+            `;
+            
+            const header = card.querySelector('.op-header');
+            header.addEventListener('click', () => {
+                card.classList.toggle('collapsed');
+            });
+
+            elements.processView.appendChild(card);
+            activeOpCard = card;
+        }
+
+        function createSubroundSection(title, id) {
+            const section = document.createElement('div');
+            section.className = 'subround-section';
+            section.id = id;
+            section.innerHTML = `<div class="subround-title">${title}</div>`;
+            activeOpCard.querySelector('.op-body').appendChild(section);
+            activeSubroundSection = section;
+        }
+
+        function createStreamingAgentCard(container, agentId, index) {
+            const card = document.createElement('div');
+            card.className = 'agent-card';
+            card.id = `agent-card-${agentId}`;
+            card.innerHTML = `
+                <div class="agent-card-header">
+                    <span>🤖 Agent ${index + 1}</span>
+                    <span class="agent-card-status" style="font-size: 0.75rem; color: var(--accent-color);"><span class="pulse"></span> Generating...</span>
+                </div>
+                <div class="agent-card-body">
+                    <div class="stream-content" id="stream-${agentId}" style="white-space: pre-wrap; min-height: 60px; font-size: 0.8125rem; max-height: 200px; overflow-y: auto;"></div>
+                </div>
+            `;
+            container.appendChild(card);
+        }
+
+        function appendToAgentCard(agentId, token) {
+            const streamEl = document.getElementById(`stream-${agentId}`);
+            if (streamEl) {
+                streamEl.textContent += token;
+                // Auto-scroll within the card
+                streamEl.scrollTop = streamEl.scrollHeight;
+            }
+        }
+
+        function finalizeAgentCard(agentId, fullResponse) {
+            const card = document.getElementById(`agent-card-${agentId}`);
+            if (!card) return;
+            
+            // Update status
+            const status = card.querySelector('.agent-card-status');
+            if (status) {
+                status.innerHTML = '<span style="color: var(--keep-color);">✅ Done</span>';
+            }
+            
+            // Add 'done' class to stream content to hide cursor
+            const streamEl = card.querySelector('.stream-content');
+            if (streamEl) streamEl.classList.add('done');
+
+            // Replace stream content with full response + expand/collapse
+            const body = card.querySelector('.agent-card-body');
+            const preview = fullResponse.substring(0, 300);
+            const needsExpand = fullResponse.length > 300;
+            
+            body.innerHTML = `
+                <div class="content-preview" style="white-space: pre-wrap; font-size: 0.8125rem;">${escapeHtml(preview)}${needsExpand ? '...' : ''}</div>
+                ${needsExpand ? `
+                    <div class="content-full hidden" style="white-space: pre-wrap; font-size: 0.8125rem;">${escapeHtml(fullResponse)}</div>
+                    <button class="expand-btn" onclick="toggleExpand(this)">Show Full Response (${fullResponse.length} chars)</button>
+                ` : ''}
+            `;
+        }
+
+        function toggleExpand(btn) {
+            const body = btn.parentElement;
+            const preview = body.querySelector('.content-preview');
+            const full = body.querySelector('.content-full');
+            if (full.classList.contains('hidden')) {
+                full.classList.remove('hidden');
+                preview.classList.add('hidden');
+                btn.textContent = 'Collapse';
+            } else {
+                full.classList.add('hidden');
+                preview.classList.remove('hidden');
+                btn.textContent = 'Show Full Response';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function addVoteItem(container, agentId, decision, reasoning) {
+            const item = document.createElement('div');
+            item.className = `vote-item vote-${decision}`;
+            
+            let emoji = '✅';
+            if (decision === 'revise' || decision === 'redo') emoji = '🔄';
+            
+            item.innerHTML = `
+                <div>
+                    <span class="vote-badge badge-${decision}">${emoji} ${decision}</span>
+                    <strong>Agent ${agentId.slice(0, 8)}</strong>
+                </div>
+                <div class="vote-reason">${reasoning || 'No reasoning provided.'}</div>
+            `;
+            container.appendChild(item);
+        }
+    </script>
+</body>
+</html>
