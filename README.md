@@ -99,14 +99,14 @@ client = OpenAI(base_url="http://localhost:3000/v1", api_key="sk-anything")
 
 # 非流式
 response = client.chat.completions.create(
-    model="deepthink",
+    model="trisage",
     messages=[{"role": "user", "content": "P vs NP 问题为什么重要？"}]
 )
 print(response.choices[0].message.content)
 
 # 流式
 stream = client.chat.completions.create(
-    model="deepthink",
+    model="trisage",
     messages=[{"role": "user", "content": "解释量子纠缠"}],
     stream=True
 )
@@ -119,6 +119,19 @@ for chunk in stream:
 ```
 
 浏览器打开 `http://localhost:3000/test` 可以使用自带的测试 UI。
+
+### Docker 部署
+
+```bash
+# 构建并启动
+docker compose up -d
+
+# 查看日志
+docker compose logs -f
+
+# 停止
+docker compose down
+```
 
 ## 配置说明
 
@@ -203,12 +216,6 @@ TriSage/
 
 MIT
 
----
-
-就这些，你直接复制覆盖 `README.md` 就行~
-
----
-
 # Trisage-三贤者系统 — 项目文档
 
 ## 一、项目起源
@@ -258,7 +265,7 @@ MIT
 ## 四、项目结构
 
 ```
-deepthink-api/
+TriSage/
 ├── src/
 │   ├── index.ts                      入口，启动服务器
 │   ├── server.ts                     Express 路由（OpenAI 兼容 + SSE 流 + 测试页）
@@ -328,19 +335,18 @@ tool_choice: { type: "function", function: { name: "vote" } }
 - 缺点：辩论阶段的 AI 无法用工具获取实时数据来辅助推理。如果问题强依赖工具结果（如"今天天气"），辩论阶段的回答质量会受限。
 - 当前方案已足够，后续可以考虑在操作 A 之前增加一个"预调用"阶段。
 
-### 5.3 MVP 阶段不实现多 Provider 混合
+### 5.3 多模型轮询
 
-**决定**：MVP 中所有 N 个 Agent 使用同一个 LLM Provider（由 `.env` 配置）。综合 AI 可以使用不同模型（`SYNTHESIS_MODEL`），但同一个 Provider。
+**决定**：通过 `LLM_MODEL` 配置逗号分隔的模型列表，Agent 按全局递进顺序轮询使用不同模型。
+
+```env
+LLM_MODEL=gemini-3-flash-preview,KIMI 2.5,gemini-2.5-pro
+```
 
 **理由**：
-- 设计文档中规划了每个 Agent 可以用不同 Provider（混合 OpenAI + Gemini + Claude），这能提高推理多样性。
-- 但实现多 Provider 需要 Agent 池管理、Provider 路由逻辑、不同 SDK 的统一封装，工作量大且容易出错。
-- MVP 通过 OpenAI SDK 的 `baseURL` 参数已经可以接入任何 OpenAI 兼容的 API，包括各种中转站。
-
-**取舍**：
-- 优点：实现简单，一个 Provider 类搞定。
-- 缺点：所有 Agent 的"思维方式"相同（同一模型），多样性低。
-- 后续 Phase 2 再实现。
+- 不同模型有不同的"思维方式"，天然产生推理多样性。
+- 通过 OpenAI 兼容中转站，一个 Base URL 即可接入多个模型，无需多 Provider 封装。
+- 全局递进指针确保每轮的模型组合不重复。
 
 ### 5.4 流式输出：SSE 而非 WebSocket
 
@@ -435,7 +441,7 @@ operationK:start / stream / complete
 |---|---|---|
 | `/v1/chat/completions` | POST | 标准调用，等全部完成后返回 |
 | `/v1/chat/completions/stream` | POST | SSE 流式，实时推送中间事件 |
-| `/v1/models` | GET | 返回模型列表（`deepthink`） |
+| `/v1/models` | GET | 返回模型列表（`trisage`） |
 | `/health` | GET | 健康检查 |
 | `/test` | GET | 返回 Web UI 页面 |
 
@@ -445,7 +451,7 @@ operationK:start / stream / complete
 from openai import OpenAI
 client = OpenAI(base_url="http://localhost:3000/v1", api_key="anything")
 response = client.chat.completions.create(
-    model="deepthink",
+    model="trisage",
     messages=[{"role": "user", "content": "..."}]
 )
 ```
@@ -488,8 +494,8 @@ response = client.chat.completions.create(
 
 | 阶段 | 内容 | 状态 |
 |---|---|---|
-| Phase 1 (MVP) | 核心协议 A→B→K、OpenAI 兼容 API、流式输出、Web UI、用户工具传递 | ✅ 完成 |
-| Phase 2 | 多 Provider 混合、Gemini/Anthropic 原生支持、Docker 部署 | 待做 |
+| Phase 1 (MVP) | 核心协议 A→B→K、OpenAI 兼容 API、流式输出、Web UI、用户工具传递、多模型轮询、Docker 部署 | ✅ 完成 |
+| Phase 2 | 多 Provider 混合（不同 Base URL）、Gemini/Anthropic 原生 SDK 支持 | ⏳ 进行中 |
 | Phase 3 | 用户工具在辩论阶段的预调用、持久化会话、成本追踪、请求取消 | 待做 |
 
 ---
