@@ -3,6 +3,9 @@ import { DeepThinkConfig } from "./types";
 
 dotenv.config();
 
+const modelsRaw = process.env.LLM_MODEL || "gpt-4o-mini";
+const models = modelsRaw.split(",").map((m) => m.trim()).filter(Boolean);
+
 const config: DeepThinkConfig = {
   port: parseInt(process.env.PORT || "3000", 10),
   agentCount: parseInt(process.env.AGENT_COUNT || "3", 10),
@@ -11,11 +14,11 @@ const config: DeepThinkConfig = {
   llm: {
     apiKey: process.env.LLM_API_KEY || "",
     baseUrl: process.env.LLM_BASE_URL || "https://api.openai.com/v1",
-    model: process.env.LLM_MODEL || "gpt-4o-mini",
+    models,
     temperature: parseFloat(process.env.LLM_TEMPERATURE || "0.7"),
     maxTokens: parseInt(process.env.LLM_MAX_TOKENS || "4096", 10),
   },
-  synthesisModel: process.env.SYNTHESIS_MODEL || "gpt-4o",
+  synthesisModel: process.env.SYNTHESIS_MODEL || models[0],
   agentTimeoutMs: parseInt(process.env.AGENT_TIMEOUT_MS || "60000", 10),
   totalTimeoutMs: parseInt(process.env.TOTAL_TIMEOUT_MS || "300000", 10),
   logLevel: (process.env.LOG_LEVEL || "info") as any,

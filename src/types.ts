@@ -119,7 +119,7 @@ export interface DeepThinkConfig {
   llm: {
     apiKey: string;
     baseUrl: string;
-    model: string;
+    models: string[];
     temperature: number;
     maxTokens: number;
   };

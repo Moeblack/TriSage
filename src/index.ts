@@ -13,7 +13,7 @@ app.listen(PORT, () => {
   logger.info(`Agent Count (N): ${config.agentCount}`);
   logger.info(`Max Review Rounds (X): ${config.maxReviewRounds}`);
   logger.info(`LLM Base URL: ${config.llm.baseUrl}`);
-  logger.info(`LLM Model: ${config.llm.model}`);
+  logger.info(`LLM Models: ${config.llm.models.join(", ")} (round-robin)`);
   logger.info(`Synthesis Model: ${config.synthesisModel}`);
   logger.info(`Log Level: ${config.logLevel}`);
   logger.info(`--------------------------------------------------`);

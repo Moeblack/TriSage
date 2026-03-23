@@ -6,6 +6,7 @@ import { retry } from "../utils/retry";
 export class LLMProvider {
   private client: OpenAI;
   private config: DeepThinkConfig;
+  private modelIndex = 0;
 
   constructor(config: DeepThinkConfig) {
     this.config = config;
@@ -15,12 +16,20 @@ export class LLMProvider {
     });
   }
 
+  /** Round-robin model selection with globally advancing index */
+  private getNextModel(): string {
+    const models = this.config.llm.models;
+    const model = models[this.modelIndex % models.length];
+    this.modelIndex++;
+    return model;
+  }
+
   async chatCompletion(
     messages: ChatMessage[],
     options: { model?: string; temperature?: number; maxTokens?: number } = {}
   ): Promise<AgentResponse> {
     return retry(async () => {
-      const model = options.model || this.config.llm.model;
+      const model = options.model || this.getNextModel();
       const response = await this.client.chat.completions.create({
         model,
         messages: messages as any,
@@ -49,7 +58,7 @@ export class LLMProvider {
     options: { model?: string; temperature?: number; maxTokens?: number } = {}
   ): Promise<AgentResponse> {
     return retry(async () => {
-      const model = options.model || this.config.llm.model;
+      const model = options.model || this.getNextModel();
       const agentId = crypto.randomUUID();
       let fullContent = "";
       let promptTokens = 0;
@@ -97,7 +106,7 @@ export class LLMProvider {
     options: { model?: string; temperature?: number; maxTokens?: number } = {}
   ): Promise<{ response: string; toolCalls?: import("../types").ToolCall[] }> {
     return retry(async () => {
-      const model = options.model || this.config.llm.model;
+      const model = options.model || this.getNextModel();
       let fullContent = "";
       const toolCallAccumulator: Record<number, { id: string; name: string; arguments: string }> = {};
   
@@ -164,7 +173,7 @@ export class LLMProvider {
     options: { model?: string; temperature?: number; maxTokens?: number } = {}
   ): Promise<{ response: AgentResponse; vote: Vote }> {
     return retry(async () => {
-      const model = options.model || this.config.llm.model;
+      const model = options.model || this.getNextModel();
       const response = await this.client.chat.completions.create({
         model,
         messages: messages as any,

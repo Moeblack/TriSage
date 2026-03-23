@@ -69,7 +69,7 @@ export async function executeOperationA(
           });
           
           if (addReasoning) {
-            addReasoning(`  [Agent-${index}] ${resp.response.substring(0, 20)}...\n`);
+            addReasoning(`  [Agent-${index}](${resp.model}) ${resp.response.substring(0, 20)}...\n`);
           }
           
           return resp;
