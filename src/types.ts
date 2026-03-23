@@ -100,8 +100,8 @@ export interface ChatCompletionResponse {
     completion_tokens: number;
     total_tokens: number;
   };
-  // DeepThink metadata extension
-  deepthink_metadata?: {
+  // TriSage metadata extension
+  trisage_metadata?: {
     totalRounds: number;
     operationAResults: OperationAResult[];
     operationBResults: OperationBResult[];
@@ -111,7 +111,7 @@ export interface ChatCompletionResponse {
 
 // === Config Types ===
 
-export interface DeepThinkConfig {
+export interface TriSageConfig {
   port: number;
   agentCount: number;
   maxReviewRounds: number;

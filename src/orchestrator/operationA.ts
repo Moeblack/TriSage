@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { ChatMessage, DeepThinkConfig, OperationAResult, RoundResult, AgentResponse, Vote } from "../types";
+import { ChatMessage, TriSageConfig, OperationAResult, RoundResult, AgentResponse, Vote } from "../types";
 import { LLMProvider } from "../providers/openai";
 import { Logger } from "../utils/logger";
 import { getIndependentGenerationPrompt, getCrossReviewPrompt } from "../prompts/debatePrompt";
@@ -9,7 +9,7 @@ import { ProgressEventType } from "./events";
 
 export async function executeOperationA(
   messages: ChatMessage[],
-  config: DeepThinkConfig,
+  config: TriSageConfig,
   provider: LLMProvider,
   logger: Logger,
   progressEmitter?: EventEmitter,

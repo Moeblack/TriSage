@@ -1,90 +1,219 @@
-# DeepThink API
+好的黄毛哥哥，直接输出，你复制粘贴：
 
-DeepThink is a consensus-based multi-agent reasoning API that orchestrates parallel AI agents through a debate-vote-synthesize protocol. It is designed to be OpenAI-compatible, making it easy to drop into existing AI workflows.
+---
 
-## How It Works
+# 三贤者系统 / TriSage
 
-DeepThink employs a three-phase protocol to arrive at high-quality answers:
+三个 AI 辩论，投票达成共识，再由一位AI给出最终回答。OpenAI 兼容，即插即用。
 
-1.  **Operation A (Debate):** $N$ agents generate independent responses in parallel, review each other's work, and vote whether to "keep" or "revise". If a majority is not reached, a sub-round begins for agents who voted to "revise".
-2.  **Operation B (Review):** A new set of $N$ agents reviews the consensus output from Operation A. They vote to "accept" or "redo" based on predefined consensus health conditions.
-3.  **Operation K (Synthesis):** A final synthesis agent combines the history of all debate rounds and dissent into a single, definitive response.
+## 它是什么
 
-## Quick Start
+TriSage 是一个多智能体共识推理 API。它把一个问题同时交给多个 AI 独立回答，让它们互相评审、投票，最后由一个综合者整合所有观点输出最终回答。
 
-### 1. Installation
+整个过程对外暴露为标准的 OpenAI `/v1/chat/completions` 接口，任何支持 OpenAI 格式的客户端都可以直接调用。
+
+## 工作原理
+
+```
+用户提问
+   │
+   ▼
+┌──────────────────────────────────────┐
+│  操作 A — 辩论                        │
+│                                      │
+│  Agent-0 (gemini-3-flash)  ──┐       │
+│  Agent-1 (KIMI 2.5)         ├─→ 各自回答 → 互相评审 → 投票 keep/revise
+│  Agent-2 (gemini-2.5-pro)   ──┘       │
+│                                      │
+│  多数 keep → 进入评审                  │
+│  多数 revise → 子轮辩论（最多 3 轮）    │
+└──────────────┬───────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────┐
+│  操作 B — 评审                        │
+│                                      │
+│  全新的 N 个 Agent 审查辩论结果         │
+│  投票 accept / redo                   │
+│                                      │
+│  accept → 进入综合                    │
+│  redo → 回到操作 A 重新辩论            │
+└──────────────┬───────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────┐
+│  操作 K — 综合                        │
+│                                      │
+│  一个综合者接收所有历史                 │
+│  （共识 + 分歧 + 投票记录）            │
+│  输出最终回答                          │
+│  （如果有工具，可以真正调用）           │
+└──────────────────────────────────────┘
+```
+
+## 特性
+
+- **多模型轮询**：配置多个模型，Agent 按全局递进顺序轮流使用，天然产生视角多样性
+- **OpenAI 兼容**：标准 `/v1/chat/completions`，支持流式和非流式
+- **推理过程可见**：编排过程通过 `reasoning_content` 字段输出，支持 `reasoning_content` 的客户端会自动展示为可折叠的"思考过程"
+- **工具调用支持**：辩论阶段以文本描述工具，综合阶段拥有真实工具调用能力
+- **接入任意 OpenAI 兼容 API**：OpenAI、Gemini 中转、Ollama、各类中转站均可
+
+## 快速开始
+
+### 安装
+
 ```bash
-git clone <repository-url>
-cd deepthink-api
+git clone https://github.com/Moeblack/TriSage.git
+cd TriSage
 npm install
 ```
 
-### 2. Configuration
-Copy `.env.example` to `.env` and fill in your API keys:
+### 配置
+
 ```bash
 cp .env.example .env
 ```
 
-### 3. Run the Server
+编辑 `.env`，填入你的 API 信息：
+
+```env
+LLM_API_KEY=sk-your-api-key
+LLM_BASE_URL=https://api.openai.com/v1
+LLM_MODEL=gpt-4o-mini,claude-sonnet-4,gemini-2.5-pro
+SYNTHESIS_MODEL=gpt-4o
+```
+
+### 启动
+
 ```bash
-# Development (with auto-reload)
+# 开发模式（热重载）
 npm run dev
 
-# Production
-npm run build
-npm start
+# 生产模式
+npm run build && npm start
 ```
 
-## API Usage
+### 调用
 
-DeepThink API is compatible with the OpenAI SDK.
-
-### Using Curl
-```bash
-curl http://localhost:3000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "deepthink",
-    "messages": [
-      {"role": "user", "content": "Explain the significance of the P vs NP problem."}
-    ]
-  }'
-```
-
-### Using OpenAI Python SDK
 ```python
 from openai import OpenAI
 
 client = OpenAI(base_url="http://localhost:3000/v1", api_key="sk-anything")
 
+# 非流式
 response = client.chat.completions.create(
     model="deepthink",
-    messages=[{"role": "user", "content": "Explain quantum entanglement."}]
+    messages=[{"role": "user", "content": "P vs NP 问题为什么重要？"}]
 )
-
 print(response.choices[0].message.content)
+
+# 流式
+stream = client.chat.completions.create(
+    model="deepthink",
+    messages=[{"role": "user", "content": "解释量子纠缠"}],
+    stream=True
+)
+for chunk in stream:
+    delta = chunk.choices[0].delta
+    if hasattr(delta, "reasoning_content") and delta.reasoning_content:
+        print(delta.reasoning_content, end="")  # 思考过程
+    if delta.content:
+        print(delta.content, end="")  # 最终回答
 ```
 
-## Architecture
+浏览器打开 `http://localhost:3000/test` 可以使用自带的测试 UI。
 
-```text
-User Request -> [ Express Server ] -> [ Orchestrator ]
-                                          |
-        +---------------------------------+---------------------------------+
-        |                                 |                                 |
- [ Operation A ]                  [ Operation B ]                   [ Operation K ]
-(Parallel Debate)                (Review & Audit)                  (Final Synthesis)
-        |                                 |                                 |
-    LLM Agents                        LLM Reviewers                      LLM Synthesis
+## 配置说明
+
+| 环境变量 | 默认值 | 说明 |
+|---------|--------|------|
+| `LLM_API_KEY` | （必填） | API Key |
+| `LLM_BASE_URL` | `https://api.openai.com/v1` | API 地址 |
+| `LLM_MODEL` | `gpt-4o-mini` | 模型列表，逗号分隔，Agent 按全局递进顺序轮询使用 |
+| `SYNTHESIS_MODEL` | 取 `LLM_MODEL` 第一个 | 综合阶段使用的模型 |
+| `AGENT_COUNT` | `3` | 每轮参与的 Agent 数量 |
+| `MAX_REVIEW_ROUNDS` | `3` | 操作 B 最多重复次数 |
+| `MAX_DEBATE_SUB_ROUNDS` | `3` | 操作 A 内部最多辩论子轮数 |
+| `LLM_TEMPERATURE` | `0.7` | 生成温度 |
+| `LLM_MAX_TOKENS` | `4096` | 单次回复最大 token |
+| `AGENT_TIMEOUT_MS` | `60000` | 单个 Agent 超时 |
+| `TOTAL_TIMEOUT_MS` | `300000` | 整体编排超时 |
+| `LOG_LEVEL` | `info` | 日志级别：debug / info / warn / error |
+
+### 多模型轮询示例
+
+```env
+LLM_MODEL=gemini-3-flash-preview,KIMI 2.5,gemini-2.5-pro
 ```
 
-## License
+Agent 按全局递进顺序选择模型，不按轮次重置：
+
+```
+Round 1 Operation A:  flash → KIMI → pro
+Round 1 Operation B:  flash → KIMI → pro
+Round 2 Operation A:  flash → KIMI → pro  ← 继续递进
+```
+
+## API 端点
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/v1/chat/completions` | POST | 标准调用，支持 `stream: true` |
+| `/v1/models` | GET | 模型列表 |
+| `/health` | GET | 健康检查 |
+| `/test` | GET | 测试 UI |
+
+### 流式响应格式
+
+流式模式下，编排过程通过 `reasoning_content` 输出，最终回答通过 `content` 输出：
+
+```
+data: {"choices":[{"delta":{"role":"assistant","reasoning_content":"🔄 Operation A - Round 1\n"}}]}
+data: {"choices":[{"delta":{"reasoning_content":"  [Agent-0](gemini-3-flash) 量子计算是利用量子力学...\n"}}]}
+data: {"choices":[{"delta":{"reasoning_content":"  [Agent-1](KIMI 2.5) 量子计算是一种新型计算...\n"}}]}
+data: {"choices":[{"delta":{"reasoning_content":"  ✓ Cross-Review: Agent-0 keep, Agent-1 keep\n"}}]}
+data: {"choices":[{"delta":{"reasoning_content":"🔄 Operation K - Synthesis\n"}}]}
+data: {"choices":[{"delta":{"content":"量子计算是一种基于量子力学原理的..."}}]}
+data: {"choices":[{"delta":{},"finish_reason":"stop"}]}
+data: [DONE]
+```
+
+## 项目结构
+
+```
+TriSage/
+├── src/
+│   ├── index.ts                 入口
+│   ├── server.ts                Express 路由
+│   ├── config.ts                配置加载
+│   ├── types.ts                 类型定义
+│   ├── orchestrator/
+│   │   ├── orchestrator.ts      主编排循环 A → B → K
+│   │   ├── operationA.ts        辩论（并行生成 → 交叉评审 → 投票）
+│   │   ├── operationB.ts        评审（投票 accept/redo）
+│   │   ├── operationK.ts        综合（最终回答 + 工具调用）
+│   │   ├── voteCounter.ts       投票计数
+│   │   └── events.ts            事件系统
+│   ├── agents/tools.ts          投票工具定义
+│   ├── providers/openai.ts      LLM 调用封装（含轮询）
+│   ├── prompts/                 三个阶段的 system prompt
+│   └── utils/                   日志、重试、工具文本化
+├── public/index.html            测试 UI
+└── .env.example                 配置模板
+```
+
+## 许可证
 
 MIT
 
 ---
 
-# DeepThink API — 项目文档
+就这些，你直接复制覆盖 `README.md` 就行~
+
+---
+
+# Trisage-三贤者系统 — 项目文档
 
 ## 一、项目起源
 

@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { ChatMessage, DeepThinkConfig, OperationAResult, OperationBResult, Vote } from "../types";
+import { ChatMessage, TriSageConfig, OperationAResult, OperationBResult, Vote } from "../types";
 import { LLMProvider } from "../providers/openai";
 import { Logger } from "../utils/logger";
 import { getReviewPrompt } from "../prompts/reviewPrompt";
@@ -12,7 +12,7 @@ export async function executeOperationB(
   operationAResult: OperationAResult,
   bExecutionCount: number,
   cumulativeRedoCount: number,
-  config: DeepThinkConfig,
+  config: TriSageConfig,
   provider: LLMProvider,
   logger: Logger,
   progressEmitter?: EventEmitter,

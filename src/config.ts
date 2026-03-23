@@ -1,12 +1,12 @@
 import dotenv from "dotenv";
-import { DeepThinkConfig } from "./types";
+import { TriSageConfig } from "./types";
 
 dotenv.config();
 
 const modelsRaw = process.env.LLM_MODEL || "gpt-4o-mini";
 const models = modelsRaw.split(",").map((m) => m.trim()).filter(Boolean);
 
-const config: DeepThinkConfig = {
+const config: TriSageConfig = {
   port: parseInt(process.env.PORT || "3000", 10),
   agentCount: parseInt(process.env.AGENT_COUNT || "3", 10),
   maxReviewRounds: parseInt(process.env.MAX_REVIEW_ROUNDS || "3", 10),
@@ -25,7 +25,7 @@ const config: DeepThinkConfig = {
 };
 
 if (!config.llm.apiKey) {
-  console.warn("[DeepThink] WARNING: LLM_API_KEY is not set.");
+  console.warn("[TriSage] WARNING: LLM_API_KEY is not set.");
 }
 
 export default config;

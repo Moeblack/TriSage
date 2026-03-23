@@ -25,7 +25,7 @@ app.post("/v1/chat/completions", async (req: Request, res: Response, next: NextF
     const requestId = `chatcmpl-${crypto.randomUUID()}`;
 
     if (tools && tools.length > 0) {
-      logger.info(`[DeepThink] User-passed ${tools.length} tools. Will be promptified for debate, real for synthesis.`);
+      logger.info(`[TriSage] User-passed ${tools.length} tools. Will be promptified for debate, real for synthesis.`);
     }
 
     logger.info(`Received chat request with ${messages.length} messages. User model: ${model}`);
@@ -45,7 +45,7 @@ app.post("/v1/chat/completions", async (req: Request, res: Response, next: NextF
           id: requestId,
           object: "chat.completion.chunk",
           created: Math.floor(Date.now() / 1000),
-          model: "deepthink",
+          model: "trisage",
           choices: [{
             index: 0,
             delta,
@@ -111,7 +111,7 @@ app.post("/v1/chat/completions", async (req: Request, res: Response, next: NextF
       id: requestId,
       object: "chat.completion",
       created: Math.floor(Date.now() / 1000),
-      model: "deepthink",
+      model: "trisage",
       choices: [
         {
           index: 0,
@@ -129,7 +129,7 @@ app.post("/v1/chat/completions", async (req: Request, res: Response, next: NextF
         completion_tokens: 0,
         total_tokens: 0,
       },
-      deepthink_metadata: result.metadata,
+      trisage_metadata: result.metadata,
     };
 
     res.json(response);
@@ -147,7 +147,7 @@ app.post("/v1/chat/completions/stream", async (req: Request, res: Response) => {
   }
   
   if (tools && tools.length > 0) {
-    logger.info(`[DeepThink] User-passed ${tools.length} tools for streaming.`);
+    logger.info(`[TriSage] User-passed ${tools.length} tools for streaming.`);
   }
 
   // SSE headers
@@ -191,10 +191,10 @@ app.get("/v1/models", (req, res) => {
     object: "list",
     data: [
       {
-        id: "deepthink",
+        id: "trisage",
         object: "model",
         created: 1718000000,
-        owned_by: "deepthink-api",
+        owned_by: "trisage",
       },
     ],
   });

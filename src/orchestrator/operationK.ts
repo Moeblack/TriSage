@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { ChatMessage, DeepThinkConfig, AgentResponse, ToolDefinition, ToolCall } from "../types";
+import { ChatMessage, TriSageConfig, AgentResponse, ToolDefinition, ToolCall } from "../types";
 import { LLMProvider } from "../providers/openai";
 import { Logger } from "../utils/logger";
 import { getSynthesisPrompt } from "../prompts/synthesisPrompt";
@@ -13,7 +13,7 @@ export interface OperationKResult {
 export async function executeOperationK(
   messages: ChatMessage[],
   allResults: { keepGroup: AgentResponse[]; dissentGroup: AgentResponse[] }[],
-  config: DeepThinkConfig,
+  config: TriSageConfig,
   provider: LLMProvider,
   logger: Logger,
   progressEmitter?: EventEmitter,

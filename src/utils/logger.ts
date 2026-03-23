@@ -27,7 +27,7 @@ export class Logger {
   }
 
   private format(level: string, msg: string): string {
-    return `[${new Date().toISOString()}] [${level.toUpperCase()}] [DeepThink] ${msg}`;
+    return `[${new Date().toISOString()}] [${level.toUpperCase()}] [TriSage] ${msg}`;
   }
 
   debug(msg: string, ...args: any[]) { if (this.shouldLog("debug")) console.debug(this.format("debug", msg), ...args); }

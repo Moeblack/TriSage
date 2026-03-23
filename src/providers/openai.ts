@@ -1,14 +1,14 @@
 import OpenAI from "openai";
-import { ChatMessage, DeepThinkConfig, ToolDefinition, AgentResponse, Vote } from "../types";
+import { ChatMessage, TriSageConfig, ToolDefinition, AgentResponse, Vote } from "../types";
 import { logger } from "../utils/logger";
 import { retry } from "../utils/retry";
 
 export class LLMProvider {
   private client: OpenAI;
-  private config: DeepThinkConfig;
+  private config: TriSageConfig;
   private modelIndex = 0;
 
-  constructor(config: DeepThinkConfig) {
+  constructor(config: TriSageConfig) {
     this.config = config;
     this.client = new OpenAI({
       apiKey: config.llm.apiKey,

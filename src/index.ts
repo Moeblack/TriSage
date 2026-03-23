@@ -8,7 +8,7 @@ const PORT = config.port || 3000;
 
 app.listen(PORT, () => {
   logger.info(`--------------------------------------------------`);
-  logger.info(`DeepThink API starting...`);
+  logger.info(`TriSage starting...`);
   logger.info(`Port: ${PORT}`);
   logger.info(`Agent Count (N): ${config.agentCount}`);
   logger.info(`Max Review Rounds (X): ${config.maxReviewRounds}`);

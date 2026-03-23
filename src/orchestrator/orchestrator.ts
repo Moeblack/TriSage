@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { ChatMessage, DeepThinkConfig, OperationAResult, OperationBResult, AgentResponse, ToolDefinition } from "../types";
+import { ChatMessage, TriSageConfig, OperationAResult, OperationBResult, AgentResponse, ToolDefinition } from "../types";
 import { LLMProvider } from "../providers/openai";
 import { logger } from "../utils/logger";
 import { withTimeout } from "../utils/retry";
@@ -12,7 +12,7 @@ import { toolsToPromptText } from "../utils/toolPromptify";
 
 export async function orchestrate(
   messages: ChatMessage[],
-  config: DeepThinkConfig,
+  config: TriSageConfig,
   progressEmitter?: EventEmitter,
   userTools?: ToolDefinition[]
 ): Promise<{ response: string; reasoning_content: string; metadata: any; toolCalls?: any[] }> {
